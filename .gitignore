@@ -1,0 +1,18 @@
+# Node.js dependencies
+node_modules/
+pnpm-lock.yaml
+
+# Eleventy output
+_site/
+
+# Editor and OS generated files
+.DS_Store
+.env
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.vscode/ # VS Code settings
+
+# Loose files mentioned
+cmds.txt
+libicu70_70.1-2_amd64.deb

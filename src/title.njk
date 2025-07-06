@@ -1,0 +1,122 @@
+---
+layout: base.njk
+title: "GIS Map Application"
+permalink: /
+---
+
+<link href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
+
+<style>
+  .space-mono-regular {
+    font-family: "Space Mono", monospace;
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  .ticket-hover-effect {
+    transform: scale(1.05) translateY(-8px) !important; /* Use !important to ensure override */
+  }
+
+  /* Custom CSS to hide scrollbar */
+  .hide-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera*/
+  }
+
+  /* Ensure images within tickets are responsive and fit */
+  .ticket img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    display: block; /* Remove extra space below image */
+    margin: 0 auto; /* Center image if smaller than container */
+  }
+</style>
+
+<div class="flex h-screen bg-cream p-4">
+  <div class="w-2/5 relative overflow-y-auto hide-scrollbar pt-8 pl-4">
+    
+    {% for post in collections.posts %}
+      {{ post.inputPath | readFileContent | markdownToTickets | safe }}
+    {% endfor %}
+  </div>
+  <div class="w-3/5 pl-4">
+    <div id="map" class="w-full h-full rounded-lg"></div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
+<script>
+  const map = new maplibregl.Map({
+    container: 'map',
+    style: 'https://demotiles.maplibre.org/style.json', // Hosted style for globe view
+    center: [0, 0],
+    zoom: 2.5,
+  });
+
+  // The following values can be changed to control rotation speed:
+
+  // At low zooms, complete a revolution every two minutes.
+  const secondsPerRevolution = 120;
+  // Above zoom level 5, do not rotate.
+  const maxSpinZoom = 5;
+  // Rotate at intermediate speeds between zoom levels 3 and 5.
+  const slowSpinZoom = 3;
+
+  let userInteracting = false;
+  let spinEnabled = true;
+
+  function spinGlobe() {
+      const zoom = map.getZoom();
+      if (spinEnabled && !userInteracting && zoom < maxSpinZoom) {
+          let distancePerSecond = 360 / secondsPerRevolution;
+          if (zoom > slowSpinZoom) {
+              // Slow spinning at higher zooms
+              const zoomDif =
+                  (maxSpinZoom - zoom) / (maxSpinZoom - slowSpinZoom);
+              distancePerSecond *= zoomDif;
+          }
+          const center = map.getCenter();
+          center.lng -= distancePerSecond;
+          // Smoothly animate the map over one second.
+          // When this animation is complete, it calls a 'moveend' event.
+          map.easeTo({ center, duration: 1000, easing: (n) => n });
+      }
+  }
+
+  // Pause spinning on interaction
+  map.on('mousedown', () => {
+      userInteracting = true;
+  });
+  map.on('touchstart', () => {
+      userInteracting = true;
+  });
+
+  // Restart spinning the globe when interaction is complete
+  map.on('moveend', () => {
+      spinGlobe();
+  });
+
+  map.on('style.load', () => {
+    map.setProjection({type: 'globe'});
+    map.setFog({}); // Set fog to default (requires a style that supports it)
+    spinGlobe();
+  });
+
+  // JavaScript for hover effect
+  document.addEventListener('DOMContentLoaded', () => {
+    const tickets = document.querySelectorAll('.ticket');
+    tickets.forEach(ticket => {
+      ticket.addEventListener('mouseenter', () => {
+        ticket.classList.add('ticket-hover-effect');
+      });
+      ticket.addEventListener('mouseleave', () => {
+        ticket.classList.remove('ticket-hover-effect');
+      });
+    });
+  });
+</script>
